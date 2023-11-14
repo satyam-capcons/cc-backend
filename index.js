@@ -14,7 +14,7 @@ const server = new ApolloServer({
 
 connectToMongoDB(MONGODB)
     .then(() => {
-        return server.listen({ port: 5000 });
+        return server.listen({ port: 80 });
     })
     .then((res) => {
         console.log(`Server running at ${res.url}`);

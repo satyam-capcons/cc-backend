@@ -17,7 +17,7 @@ COPY src ./src
 COPY index.js ./
 
 # Expose the port that your application will run on
-EXPOSE 5000
+EXPOSE 80
 
 # Define the command to run your application
 CMD ["npm", "run", "start"]

@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const { driver } = require('../connectors/neo4j');
+//const { driver } = require('../connectors/neo4j');
 const { ApolloError } = require('apollo-server-errors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -54,20 +54,20 @@ const authService = {
             phone: phone ? phone : null
         });
 
-        try {
-            // Create a new session
-            const session = driver.session();
+        // try {
+        //     // Create a new session
+        //     const session = driver.session();
 
-            // Create a new user node in the graph database
-            await session.run(
-                `CREATE (u:User {id:$id}) RETURN u`,
-                { id: newUser._id.toString() },
-            );
+        //     // Create a new user node in the graph database
+        //     await session.run(
+        //         `CREATE (u:User {id:$id}) RETURN u`,
+        //         { id: newUser._id.toString() },
+        //     );
 
-            await session.close();
-        } catch (error) {
-            throw error;
-        }
+        //     await session.close();
+        // } catch (error) {
+        //     throw error;
+        // }
 
         // Create token
         const token = jwt.sign({ user_id: newUser._id, email }, "unsafe string", { expiresIn: '24h' });

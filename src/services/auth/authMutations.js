@@ -1,11 +1,14 @@
-const User = require('../models/User');
-//const { driver } = require('../connectors/neo4j');
+const User = require('../../models/User');
+const VerifyUser = require('../../models/VerificationCode');
+const { driver } = require('../../connectors/neo4j');
 const { ApolloError } = require('apollo-server-errors');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const jwt = require('../../utils/jwt');
+const otp = require('../../utils/otp')
+const { sendEmail } = require('../../utils/email');
 
 
-const authService = {
+const authMutations = {
 
     /**
     * Registers a new user.
@@ -47,34 +50,53 @@ const authService = {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create new user object
-        const newUser = await new User({
+        const newUser = new User({
             username: username,
             email: email ? email.toLowerCase() : null,
             password: hashedPassword,
             phone: phone ? phone : null
         });
 
-        // try {
-        //     // Create a new session
-        //     const session = driver.session();
+        try {
+            // Create a new session
+            const session = driver.session();
 
-        //     // Create a new user node in the graph database
-        //     await session.run(
-        //         `CREATE (u:User {id:$id}) RETURN u`,
-        //         { id: newUser._id.toString() },
-        //     );
+            // Create a new user node in the graph database
+            await session.run(
+                `CREATE (u:User {id:$id}) RETURN u`,
+                { id: newUser._id.toString() },
+            );
 
-        //     await session.close();
-        // } catch (error) {
-        //     throw error;
-        // }
+            await session.close();
+        } catch (error) {
+            throw error;
+        }
 
         // Create token
-        const token = jwt.sign({ user_id: newUser._id, email }, "unsafe string", { expiresIn: '24h' });
+        const token = jwt.token(newUser._id, newUser.email, "48hrs");
+        newUser.token = token;
+
+        // Create verification code
+        const verificationCode = otp.generateOTP();
+        const newUserVerification = new VerifyUser({
+            id: newUser._id,
+            code: verificationCode
+        });
+
+        // save verification code
+        await newUserVerification.save().then((result) => console.log(result));
 
         // Save user
-        newUser.token = token;
         const res = await newUser.save();
+        const sendermail = 'satyam@capcons.com'.trim();
+
+        //send mail or sms
+        await sendEmail(
+            sendermail,
+            sendermail,
+            `Your verification code is ${verificationCode}`,
+            'dasjlkaj'
+        );
 
         return {
             id: res._id,
@@ -108,9 +130,11 @@ const authService = {
 
         if (user && (await bcrypt.compare(password, user.password))) {
             // Create new token
-            const token = jwt.sign({ user_id: user._id, email }, "unsafe string", { expiresIn: '1h' });
+            const token = jwt.token(user._id, user.email, "48hrs");
             // Add token to user
             user.token = token;
+
+            await user.save();
             // Return user
             return {
                 id: user._id,
@@ -120,7 +144,49 @@ const authService = {
             throw new ApolloError('Invalid Credentials');
         }
     },
+
+    /**
+     * Verifies the sign-up input by checking if the provided user ID and code are valid.
+     *
+     * @param {Object} _ - The underscore parameter (unused).
+     * @param {Object} verifySignUpInput - The sign-up input object.
+     * @param {string} verifySignUpInput.id - The ID of the user to verify.
+     * @param {string} verifySignUpInput.code - The verification code.
+     * @return {Promise<Object>} The verified user object.
+     */
+    verify: async (_, { verifySignUpInput: { id, code } }) => {
+
+        try {
+            const verifyUser = await VerifyUser.findOne({ id: id });
+
+            if (!verifyUser) {
+                throw new ApolloError('invalid user id!');
+            }
+
+            if (verifyUser.code !== code) {
+                throw new ApolloError('invalid code!please retry or generate a new code');
+            }
+            console.log(verifyUser.code)
+            console.log(code)
+
+            if (verifyUser.code === code) {
+
+                const user = await User.findById(verifyUser.id);
+
+                user.verified = true;
+                await user.save();
+                await verifyUser.remove();
+                return user;
+            }
+        }
+        catch (error) {
+            console.log(error);
+            throw new ApolloError('Verification failed. Please try again later.');
+
+        }
+
+    }
 }
 
 
-module.exports = authService;
+module.exports = authMutations;

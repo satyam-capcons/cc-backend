@@ -1,5 +1,5 @@
 const neo4j = require("neo4j-driver");
-const driver = neo4j.driver('bolt://127.0.0.1:7687', neo4j.auth.basic('neo4j', 'Cr7vslm10'));
+const driver = neo4j.driver('neo4j+s://2e2cb04b.databases.neo4j.io', neo4j.auth.basic('neo4j', 'Qzy-3_xxK_oqdqvRKvueYMdVOz-YxxVcXDXSzhDlX1o'));
 
 const verification = async () => {
     try {

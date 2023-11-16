@@ -1,4 +1,3 @@
-const { verify } = require('jsonwebtoken');
 const authController = require('../../controllers/auth/authController');
 
 module.exports = {

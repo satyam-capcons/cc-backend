@@ -15,6 +15,13 @@ type User {
     phone: String
 }
 
+type verifyUser
+{
+    id:String
+    code:String
+    expireAt:String
+
+}
 input MessageInput {
     text: String
     username: String
@@ -32,6 +39,11 @@ input LoginInput {
     password: String
 }
 
+input VerifySignUpInput {
+    id: String
+    code: String
+}
+
 type Query {
     message(id: ID!): Message
     user(id: ID!): User
@@ -39,8 +51,9 @@ type Query {
 }
 
 type Mutation {
-    createMessage(messageInput: MessageInput): Message!
+    createMessage(messageInput: MessageInput): Message
     registerUser(registerInput: RegisterInput): User
     loginUser(loginInput: LoginInput): User
+    verifyUser(verifySignUpInput: VerifySignUpInput):verifyUser
 }
 `
